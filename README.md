@@ -165,8 +165,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Paul Nicolasora**
 - GitHub: [@JP-source-do](https://github.com/JP-source-do)
-- LinkedIn: [Connect with me](https://linkedin.com/in/your-profile)
-- Email: boyculet1@gmail.com
+- LinkedIn: [John Paul Nicolasora](https://www.linkedin.com/in/john-paul-nicolasora-1a940137b/)
+- Email: [boyculet1@gmail.com](mailto:boyculet1@gmail.com)
 
 ## 🤝 Contributing
 

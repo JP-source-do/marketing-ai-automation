@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # Database for automation state
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: automation
+      POSTGRES_USER: automation_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-automation_pass123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U automation_user -d automation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis for caching and job queues
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Your existing Streamlit dashboard
+  marketing-dashboard:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    environment:
+      - META_APP_ID=${META_APP_ID}
+      - META_APP_SECRET=${META_APP_SECRET}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=automation
+      - POSTGRES_USER=automation_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-automation_pass123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    command: streamlit run src/dashboard/production_dashboard.py --server.address 0.0.0.0 --server.port 8501
+
+  # Webhook handler service
+  webhook-handler:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    environment:
+      - META_APP_ID=${META_APP_ID}
+      - META_APP_SECRET=${META_APP_SECRET}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=automation
+      - POSTGRES_USER=automation_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-automation_pass123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-your_webhook_secret}
+      - MAKE_WEBHOOK_URL=${MAKE_WEBHOOK_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    command: python -m src.automation.webhook_handler
+
+  # Automation scheduler service
+  automation-scheduler:
+    build: .
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    environment:
+      - META_APP_ID=${META_APP_ID}
+      - META_APP_SECRET=${META_APP_SECRET}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=automation
+      - POSTGRES_USER=automation_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-automation_pass123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-your_webhook_secret}
+      - MAKE_WEBHOOK_URL=${MAKE_WEBHOOK_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    command: python -m src.automation.automation_scheduler
+
+volumes:
+  postgres_data:

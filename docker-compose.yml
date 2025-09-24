@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  marketing-ai:
+    build: .
+    ports:
+      - "8501:8501"
+      - "5000:5000"
+    environment:
+      - META_APP_ID=placeholder
+      - META_APP_SECRET=placeholder
+      - META_ACCESS_TOKEN=placeholder
+      - GOOGLE_ADS_CUSTOMER_ID=placeholder
+      - GOOGLE_ADS_DEVELOPER_TOKEN=placeholder
+      - OPENAI_API_KEY=placeholder
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped 
